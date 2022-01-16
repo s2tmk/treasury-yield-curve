@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
+import { InferGetStaticPropsType } from "next";
 import { Flex } from "@chakra-ui/react";
 import { parseString } from "xml2js";
-import { InferGetStaticPropsType } from "next";
+import GraphArea from "../components/GraphArea";
 
 type Props = InferGetStaticPropsType<typeof getStaticProps>;
 
-type TreasuryYield = {
+export type TreasuryYield = {
   date: Date;
   labels: string[];
   values: number[];
@@ -27,7 +28,7 @@ const Index: React.VFC<Props> = ({ xmlData }) => {
     "30YEAR",
   ];
 
-  const [data, setData] = useState<TreasuryYield[]>([]);
+  const [yieldData, setYieldData] = useState<TreasuryYield[]>([]);
 
   useEffect(() => {
     parseString(xmlData, (err, res) => {
@@ -45,7 +46,7 @@ const Index: React.VFC<Props> = ({ xmlData }) => {
           const values = labels.map((label) =>
             parseFloat(property[`d:BC_${label}`][0]["_"])
           );
-          setData((data) => [
+          setYieldData((data) => [
             ...data,
             {
               date,
@@ -60,11 +61,12 @@ const Index: React.VFC<Props> = ({ xmlData }) => {
 
   return (
     <Flex height="100vh">
-      <ol>
+      {/* <ol>
         {data.map((d) => (
           <li>{JSON.stringify(d)}</li>
         ))}
-      </ol>
+      </ol> */}
+      {yieldData.length && <GraphArea yieldData={yieldData} />}
     </Flex>
   );
 };
