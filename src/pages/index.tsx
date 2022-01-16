@@ -1,56 +1,89 @@
-import {
-  Link as ChakraLink,
-  Text,
-  Code,
-  List,
-  ListIcon,
-  ListItem,
-} from '@chakra-ui/react'
-import { CheckCircleIcon, LinkIcon } from '@chakra-ui/icons'
+import { useEffect, useState } from "react";
+import { Flex } from "@chakra-ui/react";
+import { parseString } from "xml2js";
+import { InferGetStaticPropsType } from "next";
 
-import { Hero } from '../components/Hero'
-import { Container } from '../components/Container'
-import { Main } from '../components/Main'
-import { DarkModeSwitch } from '../components/DarkModeSwitch'
-import { CTA } from '../components/CTA'
-import { Footer } from '../components/Footer'
+type Props = InferGetStaticPropsType<typeof getStaticProps>;
 
-const Index = () => (
-  <Container height="100vh">
-    <Hero />
-    <Main>
-      <Text>
-        Example repository of <Code>Next.js</Code> + <Code>chakra-ui</Code> +{' '}
-        <Code>TypeScript</Code>.
-      </Text>
+type TreasuryYield = {
+  date: Date;
+  labels: string[];
+  values: number[];
+};
 
-      <List spacing={3} my={0}>
-        <ListItem>
-          <ListIcon as={CheckCircleIcon} color="green.500" />
-          <ChakraLink
-            isExternal
-            href="https://chakra-ui.com"
-            flexGrow={1}
-            mr={2}
-          >
-            Chakra UI <LinkIcon />
-          </ChakraLink>
-        </ListItem>
-        <ListItem>
-          <ListIcon as={CheckCircleIcon} color="green.500" />
-          <ChakraLink isExternal href="https://nextjs.org" flexGrow={1} mr={2}>
-            Next.js <LinkIcon />
-          </ChakraLink>
-        </ListItem>
-      </List>
-    </Main>
+const Index: React.VFC<Props> = ({ xmlData }) => {
+  const labels = [
+    "1MONTH",
+    "2MONTH",
+    "3MONTH",
+    "6MONTH",
+    "1YEAR",
+    "2YEAR",
+    "3YEAR",
+    "5YEAR",
+    "7YEAR",
+    "10YEAR",
+    "20YEAR",
+    "30YEAR",
+  ];
 
-    <DarkModeSwitch />
-    <Footer>
-      <Text>Next ❤️ Chakra</Text>
-    </Footer>
-    <CTA />
-  </Container>
-)
+  const [data, setData] = useState<TreasuryYield[]>([]);
 
-export default Index
+  useEffect(() => {
+    parseString(xmlData, (err, res) => {
+      if (err) {
+        console.log(err);
+      } else {
+        const pre = res.pre;
+        const entries = pre.entry;
+        entries.map((entry: any) => {
+          console.log(entry);
+          const content = entry.content[0];
+          const property = content["m:properties"][0];
+          const date = new Date(property["d:NEW_DATE"][0]["_"]);
+          date.setDate(date.getDate() + 1);
+          const values = labels.map((label) =>
+            parseFloat(property[`d:BC_${label}`][0]["_"])
+          );
+          setData((data) => [
+            ...data,
+            {
+              date,
+              labels,
+              values,
+            },
+          ]);
+        });
+      }
+    });
+  }, [xmlData]);
+
+  return (
+    <Flex height="100vh">
+      <ol>
+        {data.map((d) => (
+          <li>{JSON.stringify(d)}</li>
+        ))}
+      </ol>
+    </Flex>
+  );
+};
+
+export default Index;
+
+export const getStaticProps = async () => {
+  console.log("Start Fetching.");
+  const response = await fetch(
+    `${process.env.API_ENDPOINT}?data=yieldyear&year=2022`
+  );
+  console.log("Finish Fetching");
+  const xmlResponse = await response.text();
+
+  const staticProps = {
+    props: {
+      xmlData: xmlResponse,
+    },
+  };
+
+  return staticProps;
+};
