@@ -3,6 +3,7 @@ import { InferGetStaticPropsType } from "next";
 import { Flex } from "@chakra-ui/react";
 import { parseString } from "xml2js";
 import GraphArea from "../components/GraphArea";
+import sortBy from "lodash.sortby";
 
 type Props = InferGetStaticPropsType<typeof getStaticProps>;
 
@@ -38,22 +39,25 @@ const Index: React.VFC<Props> = ({ xmlData }) => {
         const pre = res.pre;
         const entries = pre.entry;
         entries.map((entry: any) => {
-          console.log(entry);
           const content = entry.content[0];
           const property = content["m:properties"][0];
           const date = new Date(property["d:NEW_DATE"][0]["_"]);
-          date.setDate(date.getDate() + 1);
           const values = labels.map((label) =>
             parseFloat(property[`d:BC_${label}`][0]["_"])
           );
-          setYieldData((data) => [
-            ...data,
-            {
-              date,
-              labels,
-              values,
-            },
-          ]);
+          setYieldData((data) =>
+            sortBy(
+              [
+                ...data,
+                {
+                  date,
+                  labels,
+                  values,
+                },
+              ],
+              "date"
+            )
+          );
         });
       }
     });
@@ -61,11 +65,6 @@ const Index: React.VFC<Props> = ({ xmlData }) => {
 
   return (
     <Flex height="100vh">
-      {/* <ol>
-        {data.map((d) => (
-          <li>{JSON.stringify(d)}</li>
-        ))}
-      </ol> */}
       {yieldData.length && <GraphArea yieldData={yieldData} />}
     </Flex>
   );
@@ -76,7 +75,7 @@ export default Index;
 export const getStaticProps = async () => {
   console.log("Start Fetching.");
   const response = await fetch(
-    `${process.env.API_ENDPOINT}?data=yieldyear&year=2022`
+    `${process.env.API_ENDPOINT}?data=yieldyear&year=2020`
   );
   console.log("Finish Fetching");
   const xmlResponse = await response.text();
